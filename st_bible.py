@@ -7,6 +7,9 @@ import warnings
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from nltk.corpus import stopwords 
+import faiss
+import torch
+from transformers import AutoTokenizer, AutoModel
 
 # Suppress warnings
 warnings.filterwarnings('ignore')
@@ -16,7 +19,7 @@ nltk.download('stopwords')
 
 # Streamlit Page Configuration
 st.set_page_config(page_title="Bible Verse Recommender", layout="wide")
-
+##################################################################################################################
 # Cache Data Loading
 @st.cache_data
 def load_data():
@@ -54,7 +57,7 @@ def load_data():
 
 # Load data
 data, book_names = load_data()
-
+##################################################################################################################
 # Compute TF-IDF & Cosine Similarity
 @st.cache_resource
 def compute_similarity():
@@ -78,31 +81,62 @@ def top_verse(input_book, input_chapter, input_verse, top_n=10):
         ]
         if locator.empty:
             return pd.DataFrame(columns=["Book", "Chapter", "Verse", "Text", "Similarity Score"])
-
         idx = locator.index[0]
         similarity_scores = list(enumerate(similarity_matrix[idx]))
         similarity_scores = sorted(similarity_scores, key=lambda x: x[1], reverse=True)
-
         sim_indices = [i[0] for i in similarity_scores[1:top_n + 1]]
         sim_values = [i[1] for i in similarity_scores[1:top_n + 1]]
-
         recommended = data.iloc[sim_indices].copy()
         recommended['Similarity Score'] = sim_values
         recommended = recommended[['Book Name', 'c', 'v', 't', 'Similarity Score']]
         recommended.columns = ["Book", "Chapter", "Verse", "Text", "Similarity Score"]
-        
         return recommended
-
     except Exception as e:
         st.error(f"Error in recommendation: {e}")
         return pd.DataFrame(columns=["Book", "Chapter", "Verse", "Text", "Similarity Score"])
 
+##################################################################################################################
+
+# Load Data for BERT model
+df = pd.read_csv("bible_verses_processed.csv")
+embeddings = np.load("bible_embeddings.npy")
+
+# Load FAISS index
+index = faiss.read_index("bible_faiss.index")
+
+# Load Sentence-BERT model for query embedding
+@st.cache_resource
+def load_model():
+    model_name = "sentence-transformers/all-MiniLM-L6-v2"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModel.from_pretrained(model_name)
+    return tokenizer, model
+
+tokenizer, model = load_model()
+
+# Function to get embedding for a new query
+def get_embedding(text):
+    tokens = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
+    with torch.no_grad():
+        output = model(**tokens)
+    return output.last_hidden_state[:, 0, :].numpy()
+
+# Find similar verses
+def find_similar_verses(query, top_n=5):
+    query_embedding = get_embedding(query).reshape(1, -1)
+    distances, indices = index.search(query_embedding, top_n)
+
+    # Get top matching verses, along with book, chapter, and verse
+    results = df.iloc[indices[0]][["Book Name", "c", "v", "t"]].copy()
+    results["similarity"] = 1 - distances[0]  # Convert distance to similarity score
+    return results
+##################################################################################################################
 
 # **Streamlit UI**
 tab1, tab2 = st.tabs(["Verse Recommender", "Semantic Search Recommender"])
 
 with tab1:
-    st.title("Bible Verse Recommender")
+    st.title("📖 Bible Verse Recommender")
     st.write("Find verses similar to your selection from the Old and New Testament.")
 
     with st.form("user_input"):
@@ -128,15 +162,25 @@ with tab1:
 
         if not searched_verse.empty:
             st.write(f"**Input Verse:** {searched_verse.iloc[0]['t']}")
+            st.write("### 🔍 Similar Verses:")
         else:
             st.write("Verse not found.")
 
         st.table(results)
-
+##################################################################################################################
 with tab2:
-    st.title("Semantic Search Recommender (Coming Soon)")
-    st.write("Search for verses based on topics or key phrases.")
-    st.text_input("Enter words or phrases:")
-    st.slider("Number of results", min_value=1, max_value=50, value=10, step=5)
-    st.warning("This feature is under development.")
+
+    # Streamlit UI
+    st.title("📖 Bible Verse Similarity Finder")
+    query = st.text_input("Enter a phrase or verse:", "Love your neighbor as yourself")
+    top_n = st.slider("Number of similar verses:", min_value=1, max_value=10, value=5)
+
+    if st.button("Find Similar Verses"):
+        results = find_similar_verses(query, top_n)
+        st.write("### 🔍 Similar Verses:")
+        for i, row in results.iterrows():
+            st.write(f"**Book:** {row['Book Name']} | **Chapter:** {row['c']} | **Verse:** {row['v']}")
+            st.write(f"**Text:** {row['t']} (Similarity: {row['similarity']:.2f})")
+
+
 
