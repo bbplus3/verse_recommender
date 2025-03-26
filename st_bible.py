@@ -11,6 +11,7 @@ import faiss
 import torch
 from transformers import AutoTokenizer, AutoModel
 import gdown
+import pickle
 url = "https://drive.google.com/file/d/1-z5RDrWKn13t65PmsWb4FhOGyRcJbOpB/view?usp=sharing"
 output = "bible_embeddings.npy"
 gdown.download(url, output, quiet=False)
