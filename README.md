@@ -1,2 +1,2 @@
 # verse_recommender
-TF-IDF and Cosine Similarity to recommend similar verses to user-selected verses
+TF-IDF/Cosine Similarity and BERT models to recommend similar verses to user-selected verses or text
