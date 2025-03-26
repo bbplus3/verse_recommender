@@ -1,24 +1,16 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-import string
-import nltk
 import warnings
+import nltk
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from nltk.corpus import stopwords 
+from nltk.corpus import stopwords
 import faiss
 import torch
 from transformers import AutoTokenizer, AutoModel
 import gdown
-import pickle
-url = "https://drive.google.com/file/d/1-z5RDrWKn13t65PmsWb4FhOGyRcJbOpB/view?usp=sharing"
-output = "bible_embeddings.npy"
-gdown.download(url, output, quiet=False)
-
-url = "https://drive.google.com/file/d/1I7sqgWmMjFcjqDVic73IMPXK8tehcX-A/view?usp=sharing"
-output = "bible_faiss.index"
-gdown.download(url, output, quiet=False)
+import os
 
 # Suppress warnings
 warnings.filterwarnings('ignore')
@@ -106,16 +98,36 @@ def top_verse(input_book, input_chapter, input_verse, top_n=10):
 
 ##################################################################################################################
 
-# Load Data for BERT model
-df = pd.read_csv("bible_verses_processed.csv")
-embeddings = np.load("bible_embeddings.npy")
+# **Embeddings & FAISS Index Loading**
+@st.cache_resource
+def load_embeddings_and_index():
+    """Download and load embeddings and FAISS index."""
+    
+    # Define file paths
+    emb_file = "bible_embeddings.npy"
+    index_file = "bible_faiss.index"
+    
+    # Download embeddings if not present
+    if not os.path.exists(emb_file):
+        gdown.download("https://drive.google.com/uc?id=1-z5RDrWKn13t65PmsWb4FhOGyRcJbOpB", emb_file, quiet=False)
+    
+    # Download FAISS index if not present
+    if not os.path.exists(index_file):
+        gdown.download("https://drive.google.com/uc?id=1I7sqgWmMjFcjqDVic73IMPXK8tehcX-A", index_file, quiet=False)
 
-# Load FAISS index
-index = faiss.read_index("bible_faiss.index")
+    # Load files
+    embeddings = np.load(emb_file, allow_pickle=True)
+    index = faiss.read_index(index_file)
 
-# Load Sentence-BERT model for query embedding
+    return embeddings, index
+
+embeddings, index = load_embeddings_and_index()
+
+##################################################################################################################
+# Load Sentence-BERT model
 @st.cache_resource
 def load_model():
+    """Load Sentence-BERT model."""
     model_name = "sentence-transformers/all-MiniLM-L6-v2"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
@@ -125,19 +137,34 @@ tokenizer, model = load_model()
 
 # Function to get embedding for a new query
 def get_embedding(text):
+    """Generate embedding for the given text using Sentence-BERT."""
     tokens = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
     with torch.no_grad():
         output = model(**tokens)
-    return output.last_hidden_state[:, 0, :].numpy()
+    return output.last_hidden_state[:, 0, :].numpy().astype(np.float32)
 
 # Find similar verses
 def find_similar_verses(query, top_n=5):
+    """Find similar Bible verses based on FAISS search."""
     query_embedding = get_embedding(query).reshape(1, -1)
+    query_embedding = np.array(query_embedding, dtype=np.float32)  # Ensure NumPy array
+    query_embedding = query_embedding.reshape(1, -1)  # Reshape for FAISS search
+    
     distances, indices = index.search(query_embedding, top_n)
 
-    # Get top matching verses, along with book, chapter, and verse
-    results = df.iloc[indices[0]][["Book Name", "c", "v", "t"]].copy()
-    results["similarity"] = 1 - distances[0]  # Convert distance to similarity score
+    if indices is None or len(indices[0]) == 0:
+        st.error("No similar verses found.")
+        return pd.DataFrame(columns=["Book Name", "Chapter", "Verse", "Text", "Similarity"])
+
+    # Extract results
+    results = data.iloc[indices[0]][["Book Name", "c", "v", "t"]].copy()
+    
+    # Ensure distances is not empty and matches the indices size
+    if len(distances) > 0 and len(distances[0]) == len(results):
+        results["Similarity"] = 1 - distances[0]  # Convert distance to similarity
+    else:
+        results["Similarity"] = np.nan  # Fallback if distances are empty
+    
     return results
 ##################################################################################################################
 
@@ -189,7 +216,8 @@ with tab2:
         st.write("### 🔍 Similar Verses:")
         for i, row in results.iterrows():
             st.write(f"**Book:** {row['Book Name']} | **Chapter:** {row['c']} | **Verse:** {row['v']}")
-            st.write(f"**Text:** {row['t']} (Similarity: {row['similarity']:.2f})")
+            st.write(f"**Text:** {row['t']} (Similarity: {row['Similarity']:.2f})")
+
 
 
 
