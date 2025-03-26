@@ -10,6 +10,14 @@ from nltk.corpus import stopwords
 import faiss
 import torch
 from transformers import AutoTokenizer, AutoModel
+import gdown
+url = "https://drive.google.com/file/d/1-z5RDrWKn13t65PmsWb4FhOGyRcJbOpB/view?usp=sharing"
+output = "bible_embeddings.npy"
+gdown.download(url, output, quiet=False)
+
+url = "https://drive.google.com/file/d/1I7sqgWmMjFcjqDVic73IMPXK8tehcX-A/view?usp=sharing"
+output = "bible_faiss.index"
+gdown.download(url, output, quiet=False)
 
 # Suppress warnings
 warnings.filterwarnings('ignore')
