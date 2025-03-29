@@ -1,0 +1,28 @@
+# Ignore all Jupyter Notebook files
+*.ipynb
+
+# Ignore checkpoints (auto-saved copies)
+.ipynb_checkpoints/
+
+# Ignore virtual environment
+venv/
+env/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore logs and temporary files
+*.log
+*.tmp
+
+# Ignore data files (optional)
+*.tsv
+*.json
+*.h5
+
+# Ignore system-specific files
+.DS_Store
+Thumbs.db
