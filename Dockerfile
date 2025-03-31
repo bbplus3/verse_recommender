@@ -16,5 +16,7 @@ COPY . .
 # Expose the port Streamlit runs on
 EXPOSE 8501
 
+HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
+
 # Run the Streamlit app
-CMD ["streamlit", "run", "st_bible.py", "--server.port=8501", "--server.address=0.0.0.0"]
+ENTRYPOINT ["streamlit", "run", "st_bible.py", "--server.port=8501", "--server.address=0.0.0.0"]
