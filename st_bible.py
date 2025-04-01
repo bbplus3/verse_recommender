@@ -12,6 +12,8 @@ from transformers import AutoTokenizer, AutoModel
 import gdown
 import os
 
+torch.classes.__path__ = []
+
 # Suppress warnings
 warnings.filterwarnings('ignore')
 
