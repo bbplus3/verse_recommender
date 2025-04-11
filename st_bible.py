@@ -12,8 +12,6 @@ from transformers import AutoTokenizer, AutoModel
 import gdown
 import os
 
-torch.classes.__path__ = []
-
 # Suppress warnings
 warnings.filterwarnings('ignore')
 
@@ -129,12 +127,10 @@ embeddings, index = load_embeddings_and_index()
 # Load Sentence-BERT model
 @st.cache_resource
 def load_model():
-    """Load Sentence-BERT model."""
     model_name = "sentence-transformers/all-MiniLM-L6-v2"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
     return tokenizer, model
-
 tokenizer, model = load_model()
 
 # Function to get embedding for a new query
@@ -168,6 +164,7 @@ def find_similar_verses(query, top_n=5):
         results["Similarity"] = np.nan  # Fallback if distances are empty
     
     return results
+
 ##################################################################################################################
 
 # **Streamlit UI**
@@ -219,7 +216,6 @@ with tab2:
         for i, row in results.iterrows():
             st.write(f"**Book:** {row['Book Name']} | **Chapter:** {row['c']} | **Verse:** {row['v']}")
             st.write(f"**Text:** {row['t']} (Similarity: {row['Similarity']:.2f})")
-
-
+    
 
 
