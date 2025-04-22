@@ -16,7 +16,7 @@ import os
 warnings.filterwarnings('ignore')
 
 # Download necessary NLTK resources
-nltk.download('stopwords')
+#nltk.download('stopwords')
 
 # Streamlit Page Configuration
 st.set_page_config(page_title="Bible Verse Recommender", layout="wide")
@@ -49,7 +49,9 @@ def load_data():
     data['Book Name'] = data['b'].map(book_names)
 
     # Process text: Remove stopwords
-    stop_words = set(stopwords.words('english'))
+    #stop_words = set(stopwords.words('english'))
+    stop_words = ['all', 'to', 'any', "he'd", "we've", 'this', 'have', 'whom', "isn't", "wasn't", 'own', 'now', 'do', "mightn't", 'but', 'yourselves', 'under', "i've", 'his', 'is', "haven't", 'over', 'doesn', "he's", 'her', 'your', "you've", 'each', 'the', "she'll", 'did', "you'll", 'until', "wouldn't", 'during', 'some', 'he', 'than', "didn't", 'then', 'with', 'had', "it's", 'and', "should've", 'few', "it'll", 'there', 'which', 'why', "we're", 'should', 'other', "i'll", 'an', 'been', 'herself', "needn't", 'above', "hasn't", 'both', 'will', 'only', "we'll", 'before', 'here', "we'd", 'again', 'what', "you'd", "shouldn't", 'has', 'me', "i'd", 'were', "aren't", 'so', "she's", "hadn't", 'she', 'o', 'from', 'on', 'ours', "they've", 'very', "don't", 'down', 'further', 'it', 'by', 'once', 'if', 'doing', 'are', 'no', 'i', 'through', 'yours', 'about', "she'd", 'most', 'how', "mustn't", 'as', 'myself', 'being', 'their', 'was', 'between', 'or', 'into', 'when', 'them', "they're", 'him', "couldn't", 'shouldn', 'who', 'my', "doesn't", 'where', 'at', 'off', 'yourself', 'for', 'its', "won't", 'such', "he'll", 'hers', 'be', 'after', 'not', 'same', 'these', 'that', 'below', "shan't", "they'll", 'nor', 'they', 'having', 'too', 'himself', 'those', 'out', "i'm", 'itself', 'just', 'while', 'does', "that'll", 'theirs', "they'd", 'in', 'can', 'of', 'am', 'because', "it'd", 'more', 'you', "weren't", 'we', 'themselves', 'ourselves', 'a', "you're", 'up', 'our', 'against']
+
     data['corpus'] = data['t'].astype(str).str.lower().apply(
         lambda x: ' '.join([word for word in x.split() if word not in stop_words])
     )
