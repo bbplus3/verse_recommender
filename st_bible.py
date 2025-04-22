@@ -8,9 +8,11 @@ from sklearn.metrics.pairwise import cosine_similarity
 from nltk.corpus import stopwords
 import faiss
 import torch
+torch.classes.__path__ = []  # Neutralizes the path inspection
 from transformers import AutoTokenizer, AutoModel
 import gdown
 import os
+os.environ["STREAMLIT_SERVER_ENABLE_FILE_WATCHER"] = "false"  # Disables problematic inspection
 
 # Suppress warnings
 warnings.filterwarnings('ignore')
