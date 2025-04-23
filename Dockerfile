@@ -1,33 +1,41 @@
-# Use official Python image as base
-FROM python:3.11
+# Use a lightweight Python base image
+FROM python:3.10-slim
 
-# Set working directory in the container
-WORKDIR /verse_recommender
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
-    curl \
-    software-properties-common \
-    git \
+    libopenblas-dev \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/bbplus3/verse_recommender.git .
+# Set work directory
+WORKDIR /app
 
-# Copy requirements.txt before installing dependencies (for caching efficiency)
-# COPY requirements.txt requirements.txt
-COPY . .
+# Copy project files into container
+COPY . /app
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies
+RUN pip install --upgrade pip
+RUN pip install \
+    streamlit \
+    pandas \
+    numpy \
+    nltk \
+    gdown \
+    faiss-cpu \
+    scikit-learn \
+    sentence-transformers \
+    transformers
 
-# Copy the rest of the app code
-COPY . .
+# Download NLTK stopwords (optional if used)
+# RUN python -m nltk.downloader stopwords
 
-# Expose the port Streamlit runs on
-EXPOSE 8501
+# Expose Streamlit's default port
+EXPOSE 8080
 
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
-
-ENTRYPOINT ["streamlit", "run", "st_bible.py", "--server.port=8501", "--server.address=0.0.0.0"]
-# Run the Streamlit app
-# CMD ["streamlit", "run", "st_bible.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Streamlit command to run app
+CMD ["streamlit", "run", "st_bible.py", "--server.port=8080", "--server.address=0.0.0.0"]
