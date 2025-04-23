@@ -1,6 +1,6 @@
 runtime: python310
 
-entrypoint: streamlit run prophecy.py --server.port=8080 --server.address=0.0.0.0
+entrypoint: streamlit run st_bible.py --server.port=8080 --server.address=0.0.0.0
 
 env_variables:
   STREAMLIT_SERVER_HEADLESS: true
